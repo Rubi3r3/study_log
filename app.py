@@ -18,6 +18,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from urllib.parse import quote_plus
+from functools import wraps
 
 # Load environment variables from .env file
 load_dotenv()
@@ -127,8 +128,20 @@ def home():
 #    )  # Serve the HTML file from the 'templates' folder
 
 
+def auth_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("logged_in"):
+            flash("You must log in to access this page.")
+            return render_template("login.html"), 401
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 # Route to log a new study session
 @app.route("/log_study_session", methods=["POST"])
+@auth_required
 def log_study_session():
     data = request.get_json()
     start_time_str = data.get("start_time")
@@ -171,6 +184,7 @@ def log_study_session():
 
 
 @app.route("/total_study_time", methods=["GET"])
+@auth_required
 def total_study_time():
     try:
         # Get the current date in Belize timezone
@@ -222,9 +236,10 @@ def total_study_time():
 
 
 @app.route("/cumulative_time_summary", methods=["GET"])
+@auth_required
 def cumulative_time_summary():
     try:
-         # Query the database
+        # Query the database
         results = (
             db.session.query(
                 StudySession.module_name,
@@ -258,9 +273,7 @@ def cumulative_time_summary():
             summary_data.append(
                 {
                     "module_name": result.module_name,
-                    "cumulative_time_hours": round(
-                        cumulative_time_seconds / 3600, 2
-                    ),
+                    "cumulative_time_hours": round(cumulative_time_seconds / 3600, 2),
                     "cumulative_time_formatted": cumulative_time_formatted,
                     "all_comments": (
                         result.all_comments if result.all_comments else "No comments"
@@ -278,7 +291,9 @@ def cumulative_time_summary():
         print(f"Error occurred: {e}")
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/study_sessions", methods=["GET"])
+@auth_required
 def get_study_sessions():
     sessions = StudySession.query.all()
     return jsonify(
@@ -302,11 +317,13 @@ def get_study_sessions():
 
 
 @app.route("/profile")
+@auth_required
 def profile():
     return render_template("profile.html")
 
 
 @app.route("/table_data")
+@auth_required
 def table_data():
     return render_template("table_data.html")
 
