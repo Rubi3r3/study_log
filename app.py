@@ -249,6 +249,7 @@ def cumulative_time_summary():
                 db.func.string_agg(StudySession.comments, " || ").label("all_comments"),
             )
             .group_by(StudySession.module_name)
+            .order_by(StudySession.module_name.asc())
             .all()
         )
 
@@ -336,4 +337,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=9090)
+    app.run(debug=True, host='0.0.0.0', port=9090)
