@@ -81,6 +81,21 @@ class User(db.Model):
     role = db.Column(db.String(50), nullable=False)
 
 
+# Define the Table Model
+class UnigisMscStatus(db.Model):
+    __tablename__ = "unigis_msc_status"
+    
+    id = db.Column(db.Integer, primary_key=True)
+    module_name = db.Column(db.Text, nullable=False)
+    status = db.Column(db.Text, nullable=False)
+    grade_points = db.Column(db.Numeric(5,2))
+    grade_text = db.Column(db.Text)
+    grade_value = db.Column(db.Integer)
+    ects = db.Column(db.Integer)
+    equivalent = db.Column(db.Text)
+    gpa = db.Column(db.Numeric(3,2))
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "GET":
@@ -327,6 +342,13 @@ def profile():
 @auth_required
 def table_data():
     return render_template("table_data.html")
+
+@app.route("/grade")
+@auth_required
+def grade():
+    grades = UnigisMscStatus.query.order_by(UnigisMscStatus.module_name).all()
+    return render_template("grade.html", grades=grades)
+    #return render_template("grade.html")
 
 
 @app.route("/logout")
