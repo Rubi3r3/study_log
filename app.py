@@ -395,24 +395,30 @@ def download_pdf():
     for grade in grades:
         module_name = Paragraph(grade.module_name, styles["Normal"])  # **Ensures word wrapping**
         data.append([
-            module_name, grade.status, str(grade.grade_points or ""),
-            grade.grade_text or "", str(grade.grade_value or ""),
-            str(grade.ects or ""), grade.equivalent or "", str(grade.gpa or "")
+            module_name, 
+            Paragraph(grade.status, styles["Normal"]),
+            Paragraph(str(grade.grade_points or ""),styles["Normal"]),
+            Paragraph(grade.grade_text or "", styles["Normal"]),
+            Paragraph(str(grade.grade_value or ""),styles["Normal"]),
+            Paragraph(str(grade.ects or ""), styles["Normal"]),
+            Paragraph(grade.equivalent or "", styles["Normal"]),
+            Paragraph(str(grade.gpa or ""), styles["Normal"])
         ])
 
-    # **GREEN THEMED TABLE**
-    table = Table(data, colWidths=[120, 80, 80, 100, 80, 60, 120, 60])
+    # **TABLE STYLING (Ensuring Center Alignment & Padding)**
+    table = Table(data, colWidths=[180, 80, 80, 80, 80, 60, 80, 60])
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.darkgreen),  # Green header
+        ('BACKGROUND', (0, 0), (-1, 0), colors.darkgreen),  # **Green header**
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # **Center all text (Horizontally)**
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # **Ensure text is in the middle (Vertically)**
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 10),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 5),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),  # Light green body
+        ('TOPPADDING', (0, 0), (-1, -1), 5),  # **Padding for better spacing**
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),  # **White background**
         ('GRID', (0, 0), (-1, -1), 1, colors.black)  # **Adds table borders**
     ]))
-
     elements.append(table)
 
     # **BUILD PDF**
