@@ -11,6 +11,7 @@ from flask import (
     session,
     make_response,
     send_from_directory,
+    Response,
 )
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
@@ -19,6 +20,11 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from urllib.parse import quote_plus
 from functools import wraps
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Image, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+import io
 
 # Load environment variables from .env file
 load_dotenv()
@@ -349,6 +355,71 @@ def grade():
     grades = UnigisMscStatus.query.order_by(UnigisMscStatus.module_name).all()
     return render_template("grade.html", grades=grades)
     #return render_template("grade.html")
+
+
+
+
+@app.route("/download_pdf")
+@auth_required
+def download_pdf():
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))  # **Landscape orientation**
+    #doc = SimpleDocTemplate(buffer,pagesize=letter) # ** Letter Portriat **
+    
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # **LOGOS (Left: UNIGIS, Right: PLUS)**
+    unigis_logo = Image("https://raw.githubusercontent.com/UNIGIS-Salzburg/Opt_AppDev-R/refs/heads/master/branding/UNIGIS_Salzburg_horizontal_mitSbg.png", width=130, height=60)
+    plus_logo = Image("https://upload.wikimedia.org/wikipedia/commons/2/2c/Logo_der_Universit%C3%A4t_Salzburg.jpg", width=140, height=70)
+
+    # **LOGO LAYOUT**
+    logo_table = Table([[unigis_logo, "", plus_logo]], colWidths=[150, 400, 120])
+    logo_table.setStyle(TableStyle([("ALIGN", (0, 0), (0, 0), "LEFT"),
+                                    ("ALIGN", (2, 0), (2, 0), "RIGHT")]))
+    elements.append(logo_table)
+    elements.append(Spacer(1, 20))  # Space between logos and title
+
+    # **TITLE**
+    title = Paragraph("<b>UNIGIS MSc (GISC) Grade Report</b>", styles["Title"])
+    elements.append(title)
+    elements.append(Spacer(1, 10))
+
+    # **TABLE HEADER**
+    data = [
+        ["Module Name", "Status", "Grade Points", "Grade Text", "Grade Value", "ECTS", "Equivalent", "GPA"]
+    ]
+
+    # **TABLE CONTENT**
+    grades = UnigisMscStatus.query.order_by(UnigisMscStatus.module_name).all()
+    for grade in grades:
+        module_name = Paragraph(grade.module_name, styles["Normal"])  # **Ensures word wrapping**
+        data.append([
+            module_name, grade.status, str(grade.grade_points or ""),
+            grade.grade_text or "", str(grade.grade_value or ""),
+            str(grade.ects or ""), grade.equivalent or "", str(grade.gpa or "")
+        ])
+
+    # **GREEN THEMED TABLE**
+    table = Table(data, colWidths=[120, 80, 80, 100, 80, 60, 120, 60])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.darkgreen),  # Green header
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 5),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),  # Light green body
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)  # **Adds table borders**
+    ]))
+
+    elements.append(table)
+
+    # **BUILD PDF**
+    doc.build(elements)
+    buffer.seek(0)
+
+    return Response(buffer, mimetype="application/pdf", headers={"Content-Disposition": "attachment; filename=UNIGIS_Grade_Report.pdf"})
 
 
 @app.route("/logout")
